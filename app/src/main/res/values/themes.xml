@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.Remontnik" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:colorAccent">#FFC72C</item>
+        <item name="android:navigationBarColor">#FF0E1118</item>
+        <item name="android:statusBarColor">#FF0E1118</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+</resources>
