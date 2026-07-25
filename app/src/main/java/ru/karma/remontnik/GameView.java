@@ -450,6 +450,7 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
         player.facingRight = true;
         cameraX = clamp(player.x - 430, 0, Math.max(0, level.worldWidth - W));
         screen = Screen.GAME;
+        showToast(currentMission());
         saveCurrent();
         updateMusic();
     }
@@ -603,11 +604,11 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
 
     private String levelSubtitle(int n) {
         switch (n) {
-            case 1: return "Дорога к дому";
-            case 2: return "Старый квартал";
-            case 3: return "Разрушенный участок";
-            case 4: return "Ночная стройка";
-            default: return "Финальный рывок";
+            case 1: return "Крыльцо и двор";
+            case 2: return "Дождливый переулок";
+            case 3: return "Материалы для ремонта";
+            case 4: return "Злые соседи";
+            default: return "Буря над домом";
         }
     }
 
@@ -651,6 +652,24 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
             case 2: return Color.rgb(96, 71, 111);
             case 3: return Color.rgb(96, 67, 104);
             default: return Color.rgb(122, 54, 58);
+        }
+    }
+
+    private int blendColor(int from, int to, float t) {
+        t = clamp(t, 0f, 1f);
+        return Color.rgb(
+                (int) (Color.red(from) + (Color.red(to) - Color.red(from)) * t),
+                (int) (Color.green(from) + (Color.green(to) - Color.green(from)) * t),
+                (int) (Color.blue(from) + (Color.blue(to) - Color.blue(from)) * t));
+    }
+
+    private String currentMission() {
+        switch (currentLevel) {
+            case 1: return "Миссия: дойти до участка и починить крыльцо";
+            case 2: return "Миссия: пережить дождь и добраться до сарая";
+            case 3: return "Миссия: собрать материалы и пройти разрушенный двор";
+            case 4: return "Миссия: пройти ночную стройку и усмирить соседей";
+            default: return "Миссия: финальный ремонт дома в бурю";
         }
     }
 
@@ -702,30 +721,34 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void drawLevelBackground(Canvas c, int theme, float cam) {
-        p.setShader(new LinearGradient(0, 0, 0, H, themeTop(theme), themeBottom(theme), Shader.TileMode.CLAMP));
+        float cycle = 0.5f + 0.5f * (float) Math.sin(time * .10f + theme * .45f);
+        float night = 1f - cycle;
+        int top = blendColor(themeTop(theme), Color.rgb(18, 24, 43), night * .9f);
+        int bottom = blendColor(themeBottom(theme), Color.rgb(56, 65, 98), night * .8f);
+        p.setShader(new LinearGradient(0, 0, 0, H, top, bottom, Shader.TileMode.CLAMP));
         c.drawRect(0, 0, W, H, p);
         p.setShader(null);
 
-        if (theme == 2) {
-            p.setColor(Color.rgb(255, 211, 87));
-            c.drawCircle(1040, 130, 58, p);
-            p.setColor(Color.argb(40, 255, 238, 170));
-            c.drawCircle(1040, 130, 94, p);
-        } else if (theme == 3) {
-            p.setColor(Color.rgb(231, 234, 210));
-            c.drawCircle(1040, 112, 42, p);
-            p.setColor(Color.rgb(39, 55, 91));
-            c.drawCircle(1058, 100, 39, p);
-            for (int i = 0; i < 32; i++) {
+        float sunX = 1030 - cam * .03f;
+        float sunY = 150 - cycle * 68f;
+        p.setColor(blendColor(Color.rgb(255, 214, 87), Color.rgb(235, 238, 252), night));
+        c.drawCircle(sunX, sunY, 52 - night * 10f, p);
+        if (night > .2f) {
+            p.setColor(Color.rgb(28, 36, 71));
+            c.drawCircle(sunX + 18, sunY - 10, 45, p);
+        }
+
+        if (night > .18f) {
+            for (int i = 0; i < 28; i++) {
                 float sx = (i * 149 + 41) % 1260;
                 float sy = 35 + (i * 83) % 245;
-                float r = 1.3f + (i % 3) * .7f;
-                p.setColor(Color.argb(150 + (i % 3) * 30, 255, 244, 191));
+                float r = 1.2f + (i % 3) * .6f;
+                p.setColor(Color.argb((int)(120 + night * 110), 255, 245, 210));
                 c.drawCircle(sx, sy, r, p);
             }
-        } else if (theme == 4) {
-            p.setColor(Color.argb(120, 255, 229, 160));
-            c.drawCircle(1100, 115, 34, p);
+        }
+
+        if (theme == 4) {
             p.setStrokeWidth(6);
             p.setColor(Color.argb(170, 236, 239, 255));
             for (int i = 0; i < 3; i++) {
@@ -744,10 +767,42 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
                 float ry = (i * 97 + time * 470) % 720;
                 c.drawLine(rx, ry, rx - 10, ry + 24, p);
             }
+        } else if (theme == 1) {
+            drawCloud(c, 160 - cam * .08f % 1450, 110, 1f);
+            drawCloud(c, 780 - cam * .06f % 1500, 160, .8f);
+            p.setColor(Color.argb(95, 220, 235, 246));
+            p.setStrokeWidth(2);
+            for (int i = 0; i < 70; i++) {
+                float x = (i * 173 + time * 260) % 1400 - 60;
+                float y = (i * 97 + time * 410) % 720;
+                c.drawLine(x, y, x - 8, y + 18, p);
+            }
+        } else if (theme == 2) {
+            drawCloud(c, 150 - cam * .05f % 1450, 100, .9f);
+            p.setColor(Color.argb(80, 210, 170, 120));
+            p.setStrokeWidth(2);
+            for (int i = 0; i < 42; i++) {
+                float dx = (i * 133 + time * 170) % 1380 - 50;
+                float dy = 180 + (i * 57) % 360;
+                c.drawLine(dx, dy, dx + 18, dy - 4, p);
+            }
+        } else if (theme == 3) {
+            for (int i = 0; i < 52; i++) {
+                float sx = (i * 137 + time * 55) % 1380 - 40;
+                float sy = (i * 101 + time * 33) % 720;
+                p.setColor(Color.argb(110, 245, 245, 255));
+                c.drawCircle(sx, sy, 1.8f + (i % 2), p);
+            }
         } else {
             drawCloud(c, 160 - cam * .08f % 1450, 100, 1f);
             drawCloud(c, 720 - cam * .06f % 1500, 150, .7f);
             drawCloud(c, 1100 - cam * .1f % 1600, 75, 1.2f);
+            p.setColor(Color.argb(75, 255, 200, 80));
+            for (int i = 0; i < 18; i++) {
+                float lx = (i * 211 + time * 120) % 1400 - 60;
+                float ly = 200 + (i * 53) % 260;
+                c.drawOval(new RectF(lx, ly, lx + 10, ly + 4), p);
+            }
         }
 
         int farColor = theme == 0 ? Color.rgb(101, 150, 99)
@@ -755,15 +810,12 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
                 : theme == 2 ? Color.rgb(92, 73, 104)
                 : theme == 3 ? Color.rgb(53, 60, 82)
                 : Color.rgb(65, 47, 59);
+        farColor = blendColor(farColor, Color.rgb(24, 28, 46), night * .55f);
         p.setColor(farColor);
         Path far = new Path();
         far.moveTo(0, 500);
-        for (int x = 0; x <= 1280; x += 160) {
-            far.lineTo(x, 430 + (float) Math.sin((x + cam * .18f) * .006f) * 55);
-        }
-        far.lineTo(1280, 720);
-        far.lineTo(0, 720);
-        far.close();
+        for (int x = 0; x <= 1280; x += 160) far.lineTo(x, 430 + (float) Math.sin((x + cam * .18f) * .006f) * 55);
+        far.lineTo(1280, 720); far.lineTo(0, 720); far.close();
         c.drawPath(far, p);
 
         int nearColor = theme == 0 ? Color.rgb(69, 124, 73)
@@ -771,25 +823,17 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
                 : theme == 2 ? Color.rgb(65, 60, 85)
                 : theme == 3 ? Color.rgb(39, 45, 64)
                 : Color.rgb(48, 39, 52);
+        nearColor = blendColor(nearColor, Color.rgb(18, 24, 36), night * .58f);
         p.setColor(nearColor);
         Path near = new Path();
         near.moveTo(0, 570);
-        for (int x = 0; x <= 1280; x += 120) {
-            near.lineTo(x, 505 + (float) Math.sin((x + cam * .28f) * .008f) * 45);
-        }
-        near.lineTo(1280, 720);
-        near.lineTo(0, 720);
-        near.close();
+        for (int x = 0; x <= 1280; x += 120) near.lineTo(x, 505 + (float) Math.sin((x + cam * .28f) * .008f) * 45);
+        near.lineTo(1280, 720); near.lineTo(0, 720); near.close();
         c.drawPath(near, p);
 
-        if (theme == 1) {
-            p.setColor(Color.argb(90, 220, 235, 246));
-            p.setStrokeWidth(2);
-            for (int i = 0; i < 70; i++) {
-                float x = (i * 173 + time * 260) % 1400 - 60;
-                float y = (i * 97 + time * 410) % 720;
-                c.drawLine(x, y, x - 8, y + 18, p);
-            }
+        if (night > .15f) {
+            p.setColor(Color.argb((int)(night * 85), 8, 12, 24));
+            c.drawRect(0, 0, W, H, p);
         }
     }
 
@@ -957,7 +1001,6 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
             p.setColor(Color.rgb(185, 45, 40));
             c.drawRect(-15, -15, 13, -10, p);
         } else if (e.type == 3) {
-            // Fast construction drone used on hard levels.
             p.setColor(Color.rgb(37, 42, 49));
             c.drawRoundRect(new RectF(-29, -39, 29, -3), 9, 9, p);
             p.setColor(Color.rgb(210, 91, 43));
@@ -976,13 +1019,43 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
             c.drawCircle(17, -2, 3, p);
             p.setColor(Color.rgb(226, 106, 41));
             Path beacon = new Path();
-            beacon.moveTo(-5, -39);
-            beacon.lineTo(0, -52);
-            beacon.lineTo(5, -39);
-            beacon.close();
+            beacon.moveTo(-5, -39); beacon.lineTo(0, -52); beacon.lineTo(5, -39); beacon.close();
             c.drawPath(beacon, p);
-            p.setColor(Color.rgb(255, 220, 81));
-            c.drawCircle(0, -47, 3, p);
+            p.setColor(Color.rgb(255, 220, 81)); c.drawCircle(0, -47, 3, p);
+        } else if (e.type == 4 || e.type == 5) {
+            boolean female = e.type == 5;
+            p.setColor(Color.rgb(47, 51, 57));
+            c.drawRoundRect(new RectF(-24, -44, 24, 0), 11, 11, p);
+            p.setColor(female ? Color.rgb(179, 70, 91) : Color.rgb(69, 109, 168));
+            c.drawRoundRect(new RectF(-18, -38, 18, -4), 8, 8, p);
+            p.setColor(Color.rgb(234, 193, 158));
+            c.drawCircle(0, -50, 13, p);
+            p.setColor(female ? Color.rgb(68, 36, 28) : Color.rgb(43, 30, 25));
+            if (female) {
+                c.drawOval(new RectF(-15, -60, 15, -46), p);
+                c.drawRoundRect(new RectF(-16, -56, -9, -36), 3, 3, p);
+                c.drawRoundRect(new RectF(9, -56, 16, -36), 3, 3, p);
+            } else {
+                c.drawRoundRect(new RectF(-13, -60, 13, -48), 4, 4, p);
+                c.drawRoundRect(new RectF(-15, -56, -10, -40), 3, 3, p);
+                c.drawRoundRect(new RectF(10, -56, 15, -40), 3, 3, p);
+            }
+            p.setColor(Color.WHITE);
+            c.drawOval(new RectF(-8, -53, -1, -46), p);
+            c.drawOval(new RectF(1, -53, 8, -46), p);
+            p.setColor(Color.BLACK);
+            c.drawCircle(-4.4f, -49.6f, 1.6f, p); c.drawCircle(4.4f, -49.6f, 1.6f, p);
+            p.setColor(Color.rgb(151, 39, 42));
+            c.drawLine(-5, -42, 5, -42, p);
+            p.setColor(Color.rgb(228, 228, 232));
+            p.setStrokeWidth(3);
+            c.drawLine(-16, -20, -28, -12, p); c.drawLine(16, -20, 28, -12, p);
+            p.setColor(Color.argb(235, 247, 247, 247));
+            c.drawRoundRect(new RectF(-30, -82, 28, -60), 8, 8, p);
+            p.setColor(Color.rgb(41, 43, 47));
+            p.setTextSize(10);
+            p.setTextAlign(Paint.Align.CENTER);
+            c.drawText(female ? "ТИШЕ!" : "ЭЙ!", -1, -67, p);
         } else {
             p.setColor(Color.rgb(38, 42, 50));
             c.drawCircle(0, -24, 25, p);
@@ -1019,6 +1092,11 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
         text(c,"Уровень " + currentLevel,27,430,64,Color.rgb(255,203,50),Paint.Align.RIGHT,true);
         float progress=clamp(player.x/level.finishX,0,1); p.setColor(Color.argb(170,15,18,24)); c.drawRoundRect(new RectF(500,28,950,54),13,13,p); p.setColor(Color.rgb(255,194,44)); c.drawRoundRect(new RectF(504,32,504+438*progress,50),9,9,p);
         text(c,(int)(progress*100)+"%",18,725,76,Color.WHITE,Paint.Align.CENTER,true);
+        p.setColor(Color.argb(190, 18, 22, 30)); c.drawRoundRect(new RectF(962, 26, 1182, 86), 18, 18, p);
+        p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2); p.setColor(Color.argb(90,255,255,255)); c.drawRoundRect(new RectF(962, 26, 1182, 86),18,18,p); p.setStyle(Paint.Style.FILL);
+        text(c, currentMission(), 15, 972, 50, Color.rgb(224,232,240), Paint.Align.LEFT, false);
+        String cycle = (Math.sin(time * .10f + level.theme) > 0) ? "День" : "Ночь";
+        text(c, cycle + " • погода по уровню", 14, 972, 72, Color.rgb(255,210,88), Paint.Align.LEFT, false);
         drawRoundIcon(c,pauseBtn,"Ⅱ");
     }
 

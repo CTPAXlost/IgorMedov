@@ -118,8 +118,8 @@ final class CharacterPainter {
         p.setColor(OUTLINE);
         Path outline = new Path();
         outline.moveTo(-22, -105);
-        outline.cubicTo(-18, -116, -8, -120, 2, -119);
-        outline.cubicTo(15, -119, 23, -112, 24, -101);
+        outline.cubicTo(-18, -116, -7, -121, 2, -120);
+        outline.cubicTo(15, -119, 24, -112, 24, -100);
         outline.cubicTo(25, -91, 20, -78, 12, -72);
         outline.cubicTo(5, -67, -5, -67, -13, -73);
         outline.cubicTo(-21, -80, -25, -94, -22, -105);
@@ -129,8 +129,8 @@ final class CharacterPainter {
         p.setColor(SKIN);
         Path face = new Path();
         face.moveTo(-20, -104);
-        face.cubicTo(-16, -113, -7, -117, 2, -116);
-        face.cubicTo(13, -116, 20, -110, 21, -101);
+        face.cubicTo(-16, -113, -6, -118, 2, -117);
+        face.cubicTo(13, -116, 21, -109, 21, -100);
         face.cubicTo(22, -92, 18, -81, 10, -75);
         face.cubicTo(4, -70, -4, -70, -11, -75);
         face.cubicTo(-18, -81, -22, -94, -20, -104);
@@ -186,8 +186,8 @@ final class CharacterPainter {
         // Straight brows.
         p.setColor(Color.rgb(61, 43, 38));
         p.setStrokeWidth(2.3f);
-        c.drawLine(-14.5f, -98, -5, -99.3f, p);
-        c.drawLine(4.5f, -99.3f, 14.2f, -97.8f, p);
+        c.drawLine(-15.2f, -98.1f, -5.4f, -99.6f, p);
+        c.drawLine(4.3f, -99.4f, 14.8f, -98.0f, p);
         p.setColor(Color.argb(70, 110, 58, 48));
         p.setStrokeWidth(1.1f);
         c.drawLine(-14, -95.5f, -6, -96.2f, p);
@@ -195,8 +195,8 @@ final class CharacterPainter {
 
         // Eyes with upper lids; not oversized/chibi.
         p.setColor(Color.rgb(248, 245, 239));
-        c.drawOval(new RectF(-14, -96, -4, -88), p);
-        c.drawOval(new RectF(4, -96, 14, -88), p);
+        c.drawOval(new RectF(-14.2f, -95.8f, -4.1f, -88.4f), p);
+        c.drawOval(new RectF(4.1f, -95.8f, 14.3f, -88.4f), p);
         p.setColor(Color.rgb(89, 86, 77));
         c.drawCircle(-8.6f, -92.1f, 2.7f, p);
         c.drawCircle(8.5f, -92.1f, 2.7f, p);
@@ -232,7 +232,7 @@ final class CharacterPainter {
             p.setColor(Color.WHITE);
             c.drawArc(new RectF(-5.5f, -79.7f, 6.2f, -75f), 5, 170, false, p);
         } else {
-            c.drawLine(-5.6f, -77.8f, 5.4f, -77.5f, p);
+            c.drawLine(-5.9f, -77.6f, 5.8f, -77.3f, p);
             p.setColor(Color.rgb(174, 103, 94));
             c.drawArc(new RectF(-5.2f, -79.5f, 5.8f, -74.2f), 20, 140, false, p);
         }
