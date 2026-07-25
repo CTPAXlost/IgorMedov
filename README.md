@@ -41,3 +41,7 @@ APK внутри Artifact называется `Ремонтник-Старый-
 - `Пробел` — прыжок;
 - `X`, `E` или левый `Ctrl` — молоток;
 - `Esc` — пауза.
+
+## Исправление сборки v3
+
+Workflow использует `android-actions/setup-android@v4`, который устанавливает Android command-line tools и необходимые пакеты SDK 35. Это устраняет ошибку `sdkmanager: command not found` на GitHub Actions.

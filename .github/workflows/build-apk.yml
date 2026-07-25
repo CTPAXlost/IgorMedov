@@ -18,9 +18,9 @@ jobs:
       - name: Получить исходники
         uses: actions/checkout@v6
 
-      # В старой версии проекта находился самодельный gradle-wrapper.jar,
-      # который GitHub справедливо блокировал как неизвестный. Удаляем его
-      # до проверки и используем официальный Gradle, установленный action-ом.
+      # В ранней версии проекта был нестандартный Gradle Wrapper.
+      # Проект собирается официальной установкой Gradle, поэтому старые
+      # wrapper-файлы удаляются до запуска проверки и сборки.
       - name: Удалить старый нестандартный Gradle Wrapper
         shell: bash
         run: rm -rf gradle/wrapper gradlew gradlew.bat
@@ -31,23 +31,27 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # Этот action устанавливает Android command-line tools, добавляет
+      # sdkmanager в PATH, принимает лицензии и ставит нужные пакеты SDK.
+      - name: Установить Android SDK 35
+        uses: android-actions/setup-android@v4
+        with:
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
+          log-accepted-android-sdk-licenses: "false"
+
       - name: Установить официальный Gradle 8.9
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.9"
-
-      - name: Подготовить Android SDK 35
-        shell: bash
-        run: |
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - name: Проверить окружение
         shell: bash
         run: |
           java -version
           gradle --version
+          sdkmanager --version
           echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
 
       - name: Собрать debug APK
         shell: bash
