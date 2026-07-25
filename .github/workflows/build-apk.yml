@@ -1,0 +1,44 @@
+name: Сборка APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Получить исходники
+        uses: actions/checkout@v4
+
+      - name: Установить Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Подготовить Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Собрать debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon clean assembleDebug
+
+      - name: Подготовить понятное имя APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk "Ремонтник-Старый-дом.apk"
+
+      - name: Загрузить APK в Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ремонтник-Старый-дом-APK
+          path: Ремонтник-Старый-дом.apk
+          if-no-files-found: error
+          retention-days: 30
