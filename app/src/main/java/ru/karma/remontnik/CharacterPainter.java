@@ -7,23 +7,29 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 
+/**
+ * Programmatically drawn cartoon character for the game.
+ * The face is intentionally built from vector shapes so it stays crisp on all screens.
+ */
 final class CharacterPainter {
     private CharacterPainter() {}
 
-    private static final int OUTLINE = Color.rgb(22, 25, 31);
-    private static final int SKIN = Color.rgb(232, 184, 154);
-    private static final int SKIN_LIGHT = Color.rgb(249, 207, 178);
-    private static final int HAIR = Color.rgb(45, 34, 31);
-    private static final int SHIRT = Color.rgb(25, 28, 34);
-    private static final int JEANS = Color.rgb(54, 67, 82);
-    private static final int SHOE = Color.rgb(35, 39, 47);
+    private static final int OUTLINE = Color.rgb(24, 25, 29);
+    private static final int SKIN = Color.rgb(224, 169, 133);
+    private static final int SKIN_LIGHT = Color.rgb(247, 202, 169);
+    private static final int SKIN_SHADOW = Color.rgb(190, 126, 101);
+    private static final int HAIR = Color.rgb(43, 32, 29);
+    private static final int HAIR_LIGHT = Color.rgb(76, 54, 46);
+    private static final int SHIRT = Color.rgb(23, 25, 29);
+    private static final int JEANS = Color.rgb(47, 57, 68);
+    private static final int SHOE = Color.rgb(31, 34, 40);
 
     static void draw(Canvas c, Paint p, float x, float y, float scale, boolean facingRight,
                      float runPhase, boolean airborne, float hammerPhase, boolean victory) {
         p.setAntiAlias(true);
         p.setStyle(Paint.Style.FILL);
-        p.setColor(Color.argb(70, 0, 0, 0));
-        c.drawOval(new RectF(x - 28 * scale, y - 6 * scale, x + 28 * scale, y + 7 * scale), p);
+        p.setColor(Color.argb(75, 0, 0, 0));
+        c.drawOval(new RectF(x - 30 * scale, y - 6 * scale, x + 30 * scale, y + 7 * scale), p);
 
         c.save();
         c.translate(x, y);
@@ -31,127 +37,208 @@ final class CharacterPainter {
 
         float bob = airborne ? -3f : (float) Math.abs(Math.sin(runPhase)) * 2f;
         c.translate(0, bob);
-        float legSwing = airborne ? 22f : (float) Math.sin(runPhase) * 25f;
+        float legSwing = airborne ? 23f : (float) Math.sin(runPhase) * 25f;
         float armSwing = airborne ? -25f : -legSwing * .8f;
 
-        // Back arm.
-        drawArm(c, p, -13, -55, armSwing, false);
-        // Back leg.
-        drawLeg(c, p, -10, -28, -legSwing, false);
+        drawArm(c, p, -13, -56, armSwing, false);
+        drawLeg(c, p, -10, -29, -legSwing, false);
 
-        // Torso shadow and shirt.
+        // Torso and shoulders.
         p.setColor(OUTLINE);
-        c.drawRoundRect(new RectF(-22, -70, 23, -26), 12, 12, p);
+        c.drawRoundRect(new RectF(-23, -71, 24, -25), 12, 12, p);
         p.setColor(SHIRT);
-        c.drawRoundRect(new RectF(-19, -68, 20, -28), 10, 10, p);
-        p.setColor(Color.rgb(43, 47, 55));
-        c.drawRoundRect(new RectF(-15, -66, 15, -58), 5, 5, p);
+        c.drawRoundRect(new RectF(-20, -69, 21, -28), 10, 10, p);
+        p.setColor(Color.rgb(47, 50, 56));
+        c.drawRoundRect(new RectF(-13, -68, 14, -61), 4, 4, p);
+        p.setColor(Color.argb(34, 255, 255, 255));
+        c.drawRoundRect(new RectF(-17, -66, -12, -34), 2, 2, p);
 
-        // Shirt logo.
-        p.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+        // Exact shirt inscription requested by the user.
+        p.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         p.setTextAlign(Paint.Align.CENTER);
-        p.setTextSize(6.8f);
-        p.setColor(Color.WHITE);
-        c.drawText("KAR", 0, -46, p);
-        p.setColor(Color.rgb(204, 190, 40));
-        c.drawText("MA", 8.8f, -46, p);
+        p.setTextSize(8.2f);
+        p.setColor(Color.rgb(244, 244, 239));
+        c.drawText("K", -8.2f, -45.5f, p);
+        p.setColor(Color.rgb(190, 205, 61));
+        c.drawText("arma", 4.7f, -45.5f, p);
 
-        // Belt.
+        // Belt and tool pouch.
         p.setColor(OUTLINE);
-        c.drawRoundRect(new RectF(-21, -31, 22, -23), 3, 3, p);
-        p.setColor(Color.rgb(104, 67, 42));
-        c.drawRect(-20, -30, 21, -25, p);
-        p.setColor(Color.rgb(211, 167, 79));
-        c.drawRoundRect(new RectF(-4, -31, 5, -23), 2, 2, p);
-        p.setColor(Color.rgb(77, 47, 31));
-        c.drawRoundRect(new RectF(-28, -32, -18, -17), 3, 3, p);
+        c.drawRoundRect(new RectF(-22, -31, 23, -22), 3, 3, p);
+        p.setColor(Color.rgb(98, 62, 39));
+        c.drawRect(-21, -30, 22, -25, p);
+        p.setColor(Color.rgb(210, 166, 78));
+        c.drawRoundRect(new RectF(-4, -31, 5, -22), 2, 2, p);
+        p.setColor(Color.rgb(75, 45, 29));
+        c.drawRoundRect(new RectF(-29, -33, -18, -16), 3, 3, p);
+        p.setColor(Color.rgb(143, 88, 46));
+        c.drawLine(-26, -28, -21, -20, p);
 
-        // Front leg.
-        drawLeg(c, p, 10, -28, legSwing, true);
+        drawLeg(c, p, 10, -29, legSwing, true);
 
         // Neck.
         p.setColor(OUTLINE);
-        c.drawRoundRect(new RectF(-8, -80, 9, -64), 5, 5, p);
+        c.drawRoundRect(new RectF(-9, -82, 10, -64), 6, 6, p);
         p.setColor(SKIN);
-        c.drawRoundRect(new RectF(-6, -79, 7, -65), 4, 4, p);
+        c.drawRoundRect(new RectF(-7, -81, 8, -65), 5, 5, p);
+        p.setColor(SKIN_SHADOW);
+        c.drawRoundRect(new RectF(-7, -79, -2, -66), 3, 3, p);
 
-        // Head outline and face.
-        p.setColor(OUTLINE);
-        c.drawOval(new RectF(-25, -113, 25, -72), p);
-        p.setColor(SKIN);
-        c.drawOval(new RectF(-22, -110, 22, -74), p);
-        p.setColor(SKIN_LIGHT);
-        c.drawOval(new RectF(-15, -105, 18, -78), p);
-
-        // Ears.
-        p.setColor(OUTLINE);
-        c.drawOval(new RectF(-27, -99, -18, -84), p);
-        c.drawOval(new RectF(18, -99, 27, -84), p);
-        p.setColor(SKIN);
-        c.drawOval(new RectF(-25, -97, -19, -86), p);
-        c.drawOval(new RectF(19, -97, 25, -86), p);
-
-        // Hair: close cropped, matching the reference.
-        p.setColor(HAIR);
-        Path hair = new Path();
-        hair.moveTo(-21, -96);
-        hair.cubicTo(-23, -111, -10, -117, 3, -115);
-        hair.cubicTo(17, -115, 24, -106, 21, -96);
-        hair.cubicTo(13, -103, 3, -104, -5, -103);
-        hair.cubicTo(-12, -102, -17, -99, -21, -96);
-        hair.close();
-        c.drawPath(hair, p);
-        p.setColor(Color.rgb(77, 57, 50));
-        for (int i = 0; i < 7; i++) {
-            float hx = -15 + i * 5f;
-            c.drawLine(hx, -108, hx + 4, -103, p);
-        }
-
-        // Brows.
-        p.setColor(Color.rgb(65, 47, 42));
-        p.setStrokeWidth(2.2f);
-        c.drawLine(-14, -95, -5, -97, p);
-        c.drawLine(5, -97, 14, -95, p);
-
-        // Eyes.
-        p.setColor(Color.WHITE);
-        c.drawOval(new RectF(-14, -94, -4, -86), p);
-        c.drawOval(new RectF(4, -94, 14, -86), p);
-        p.setColor(Color.rgb(91, 104, 102));
-        c.drawCircle(-8.5f, -90, 2.8f, p);
-        c.drawCircle(8.5f, -90, 2.8f, p);
-        p.setColor(Color.rgb(20, 24, 27));
-        c.drawCircle(-8.1f, -90, 1.35f, p);
-        c.drawCircle(8.9f, -90, 1.35f, p);
-        p.setColor(Color.WHITE);
-        c.drawCircle(-7.5f, -91, .65f, p);
-        c.drawCircle(9.5f, -91, .65f, p);
-
-        // Nose and mouth.
-        p.setColor(Color.rgb(188, 133, 110));
-        p.setStrokeWidth(1.4f);
-        c.drawLine(1, -90, -1, -84, p);
-        c.drawLine(-1, -84, 3, -84, p);
-        p.setColor(Color.rgb(130, 70, 66));
-        p.setStrokeWidth(1.8f);
-        RectF mouth = new RectF(-6, -83, 7, -76);
-        c.drawArc(mouth, 15, 150, false, p);
-        if (victory) {
-            p.setColor(Color.WHITE);
-            c.drawArc(new RectF(-6, -82, 7, -76), 15, 150, false, p);
-        }
+        drawRecognizableFace(c, p, victory);
 
         // Front arm / hammer action.
         if (hammerPhase > 0f) {
-            float angle = -100f + Math.min(1f, hammerPhase) * 125f;
-            drawHammerArm(c, p, 14, -59, angle);
+            float angle = -102f + Math.min(1f, hammerPhase) * 128f;
+            drawHammerArm(c, p, 14, -60, angle);
         } else if (victory) {
-            drawHammerArm(c, p, 14, -60, -105f);
+            drawHammerArm(c, p, 14, -61, -108f);
         } else {
-            drawArm(c, p, 14, -57, -armSwing, true);
+            drawArm(c, p, 14, -58, -armSwing, true);
         }
 
         c.restore();
+    }
+
+    private static void drawRecognizableFace(Canvas c, Paint p, boolean victory) {
+        // Ears sit slightly low, matching the reference proportions.
+        p.setColor(OUTLINE);
+        c.drawOval(new RectF(-28, -101, -18, -84), p);
+        c.drawOval(new RectF(18, -101, 28, -84), p);
+        p.setColor(SKIN);
+        c.drawOval(new RectF(-26, -99, -19, -86), p);
+        c.drawOval(new RectF(19, -99, 26, -86), p);
+        p.setColor(SKIN_SHADOW);
+        p.setStrokeWidth(1.2f);
+        p.setStyle(Paint.Style.STROKE);
+        c.drawArc(new RectF(-25, -96, -20, -88), 85, 190, false, p);
+        c.drawArc(new RectF(20, -96, 25, -88), -95, 190, false, p);
+        p.setStyle(Paint.Style.FILL);
+
+        // Longer oval face with defined cheek and jaw structure.
+        p.setColor(OUTLINE);
+        Path outline = new Path();
+        outline.moveTo(-22, -105);
+        outline.cubicTo(-18, -116, -8, -120, 2, -119);
+        outline.cubicTo(15, -119, 23, -112, 24, -101);
+        outline.cubicTo(25, -91, 20, -78, 12, -72);
+        outline.cubicTo(5, -67, -5, -67, -13, -73);
+        outline.cubicTo(-21, -80, -25, -94, -22, -105);
+        outline.close();
+        c.drawPath(outline, p);
+
+        p.setColor(SKIN);
+        Path face = new Path();
+        face.moveTo(-20, -104);
+        face.cubicTo(-16, -113, -7, -117, 2, -116);
+        face.cubicTo(13, -116, 20, -110, 21, -101);
+        face.cubicTo(22, -92, 18, -81, 10, -75);
+        face.cubicTo(4, -70, -4, -70, -11, -75);
+        face.cubicTo(-18, -81, -22, -94, -20, -104);
+        face.close();
+        c.drawPath(face, p);
+
+        // Forehead and right cheek light plane.
+        p.setColor(SKIN_LIGHT);
+        Path light = new Path();
+        light.moveTo(-7, -113);
+        light.cubicTo(4, -116, 14, -111, 17, -102);
+        light.cubicTo(19, -94, 15, -83, 9, -78);
+        light.cubicTo(5, -75, 1, -74, -2, -75);
+        light.cubicTo(5, -85, 5, -99, -7, -113);
+        light.close();
+        c.drawPath(light, p);
+
+        // Cheekbone and jaw shadows add recognizable facial structure.
+        p.setColor(Color.argb(78, 150, 83, 67));
+        Path cheek = new Path();
+        cheek.moveTo(-17, -90);
+        cheek.cubicTo(-13, -87, -10, -84, -9, -78);
+        cheek.cubicTo(-14, -80, -18, -84, -19, -90);
+        cheek.close();
+        c.drawPath(cheek, p);
+        Path jaw = new Path();
+        jaw.moveTo(11, -77);
+        jaw.cubicTo(4, -72, -5, -72, -11, -76);
+        jaw.cubicTo(-5, -68, 5, -67, 12, -73);
+        jaw.close();
+        c.drawPath(jaw, p);
+
+        // Close-cropped hair and fade.
+        p.setColor(HAIR);
+        Path hair = new Path();
+        hair.moveTo(-20, -103);
+        hair.cubicTo(-20, -116, -9, -122, 3, -120);
+        hair.cubicTo(16, -120, 23, -111, 21, -101);
+        hair.cubicTo(14, -105, 6, -107, -2, -106);
+        hair.cubicTo(-10, -106, -16, -105, -20, -103);
+        hair.close();
+        c.drawPath(hair, p);
+        p.setColor(Color.argb(135, 30, 24, 23));
+        c.drawRoundRect(new RectF(-21, -105, -16, -92), 2, 2, p);
+        c.drawRoundRect(new RectF(17, -106, 22, -93), 2, 2, p);
+        p.setColor(HAIR_LIGHT);
+        p.setStrokeWidth(1.15f);
+        for (int i = 0; i < 9; i++) {
+            float hx = -15 + i * 3.8f;
+            c.drawLine(hx, -116 + (i % 2), hx + 3.5f, -109 + (i % 3), p);
+        }
+
+        // Straight brows.
+        p.setColor(Color.rgb(61, 43, 38));
+        p.setStrokeWidth(2.3f);
+        c.drawLine(-14.5f, -98, -5, -99.3f, p);
+        c.drawLine(4.5f, -99.3f, 14.2f, -97.8f, p);
+        p.setColor(Color.argb(70, 110, 58, 48));
+        p.setStrokeWidth(1.1f);
+        c.drawLine(-14, -95.5f, -6, -96.2f, p);
+        c.drawLine(5, -96.2f, 13.5f, -95.2f, p);
+
+        // Eyes with upper lids; not oversized/chibi.
+        p.setColor(Color.rgb(248, 245, 239));
+        c.drawOval(new RectF(-14, -96, -4, -88), p);
+        c.drawOval(new RectF(4, -96, 14, -88), p);
+        p.setColor(Color.rgb(89, 86, 77));
+        c.drawCircle(-8.6f, -92.1f, 2.7f, p);
+        c.drawCircle(8.5f, -92.1f, 2.7f, p);
+        p.setColor(Color.rgb(18, 20, 22));
+        c.drawCircle(-8.3f, -92.1f, 1.35f, p);
+        c.drawCircle(8.8f, -92.1f, 1.35f, p);
+        p.setColor(Color.WHITE);
+        c.drawCircle(-7.7f, -93, .62f, p);
+        c.drawCircle(9.4f, -93, .62f, p);
+        p.setColor(Color.rgb(57, 42, 38));
+        p.setStrokeWidth(1.4f);
+        c.drawArc(new RectF(-15, -98, -3, -88), 195, 150, false, p);
+        c.drawArc(new RectF(3, -98, 15, -88), 195, 150, false, p);
+
+        // Straight, compact nose with a defined bridge and nostrils.
+        p.setColor(SKIN_SHADOW);
+        p.setStrokeWidth(1.35f);
+        c.drawLine(.2f, -93, -.8f, -85.3f, p);
+        c.drawLine(-.8f, -85.3f, -3.2f, -82.8f, p);
+        c.drawLine(-3.2f, -82.8f, 1.8f, -82.1f, p);
+        p.setColor(Color.rgb(154, 91, 75));
+        c.drawCircle(-2.1f, -82.4f, .75f, p);
+        c.drawCircle(2.1f, -82.5f, .7f, p);
+
+        // Subtle philtrum, lips and chin.
+        p.setColor(Color.argb(75, 137, 77, 66));
+        p.setStrokeWidth(.9f);
+        c.drawLine(0, -80.5f, 0, -78.5f, p);
+        p.setColor(Color.rgb(132, 69, 67));
+        p.setStrokeWidth(1.55f);
+        if (victory) {
+            c.drawArc(new RectF(-6.5f, -80.8f, 7.2f, -73.8f), 5, 170, false, p);
+            p.setColor(Color.WHITE);
+            c.drawArc(new RectF(-5.5f, -79.7f, 6.2f, -75f), 5, 170, false, p);
+        } else {
+            c.drawLine(-5.6f, -77.8f, 5.4f, -77.5f, p);
+            p.setColor(Color.rgb(174, 103, 94));
+            c.drawArc(new RectF(-5.2f, -79.5f, 5.8f, -74.2f), 20, 140, false, p);
+        }
+        p.setColor(Color.argb(55, 125, 67, 59));
+        p.setStrokeWidth(1.05f);
+        c.drawArc(new RectF(-4.5f, -75.5f, 5.2f, -71.2f), 10, 160, false, p);
     }
 
     private static void drawArm(Canvas c, Paint p, float x, float y, float angle, boolean front) {
@@ -185,13 +272,13 @@ final class CharacterPainter {
         c.drawRoundRect(new RectF(-4, -2, 5, 13), 4, 4, p);
         p.setColor(SKIN);
         c.drawRoundRect(new RectF(-4, 10, 5, 29), 4, 4, p);
-        p.setColor(Color.rgb(112, 72, 43));
+        p.setColor(Color.rgb(104, 67, 42));
         c.drawRoundRect(new RectF(-2, 24, 3, 62), 2, 2, p);
         p.setColor(OUTLINE);
         c.drawRoundRect(new RectF(-14, 55, 16, 68), 4, 4, p);
-        p.setColor(Color.rgb(190, 198, 208));
+        p.setColor(Color.rgb(188, 197, 208));
         c.drawRoundRect(new RectF(-12, 57, 14, 66), 3, 3, p);
-        p.setColor(Color.rgb(237, 241, 245));
+        p.setColor(Color.rgb(238, 242, 246));
         c.drawRoundRect(new RectF(-9, 58, 8, 61), 2, 2, p);
         p.setColor(OUTLINE);
         c.drawCircle(.5f, 29, 6, p);
@@ -208,7 +295,7 @@ final class CharacterPainter {
         c.drawRoundRect(new RectF(-9, -3, 10, 34), 7, 7, p);
         p.setColor(JEANS);
         c.drawRoundRect(new RectF(-7, -2, 8, 31), 6, 6, p);
-        p.setColor(Color.rgb(71, 87, 104));
+        p.setColor(Color.rgb(67, 79, 92));
         c.drawRoundRect(new RectF(-5, 1, 1, 26), 3, 3, p);
         p.setColor(OUTLINE);
         c.drawRoundRect(new RectF(-9, 27, 16, 40), 6, 6, p);
@@ -216,7 +303,7 @@ final class CharacterPainter {
         c.drawRoundRect(new RectF(-7, 29, 14, 38), 5, 5, p);
         p.setColor(Color.rgb(220, 224, 228));
         c.drawRoundRect(new RectF(-5, 35, 15, 39), 2, 2, p);
-        p.setColor(Color.rgb(191, 201, 50));
+        p.setColor(Color.rgb(190, 203, 55));
         c.drawCircle(6, 32, 1.5f, p);
         if (front) {
             p.setColor(Color.rgb(170, 177, 184));

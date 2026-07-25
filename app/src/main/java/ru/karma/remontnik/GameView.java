@@ -30,6 +30,7 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     private static final float H = 720f;
     private static final float PLAYER_HALF_W = 24f;
     private static final float PLAYER_H = 112f;
+    private static final int MAX_LEVEL = 5;
 
     private enum Screen { MENU, SETTINGS, LEVEL_SELECT, GAME, PAUSE, REPAIR, VICTORY, GAME_OVER }
 
@@ -91,7 +92,7 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void loadPrefs() {
-        unlockedLevel = Math.max(1, Math.min(3, prefs.getInt("unlocked_level", 1)));
+        unlockedLevel = Math.max(1, Math.min(MAX_LEVEL, prefs.getInt("unlocked_level", 1)));
         totalCoins = Math.max(0, prefs.getInt("total_coins", 0));
         hasSave = prefs.getBoolean("has_save", false);
         soundEnabled = prefs.getBoolean("sound", true);
@@ -426,7 +427,7 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void startLevel(int number, boolean loadSaved) {
-        currentLevel = Math.max(1, Math.min(3, number));
+        currentLevel = Math.max(1, Math.min(MAX_LEVEL, number));
         level = LevelData.create(currentLevel);
         levelCoins = 0;
         checkpointX = 90;
@@ -469,12 +470,12 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     private void finishLevel() {
         if (screen != Screen.GAME) return;
         totalCoins += levelCoins;
-        unlockedLevel = Math.max(unlockedLevel, Math.min(3, currentLevel + 1));
-        int next = Math.min(3, currentLevel + 1);
+        unlockedLevel = Math.max(unlockedLevel, Math.min(MAX_LEVEL, currentLevel + 1));
+        int next = Math.min(MAX_LEVEL, currentLevel + 1);
         prefs.edit().putInt("total_coins", totalCoins).putInt("unlocked_level", unlockedLevel)
-                .putBoolean("has_save", currentLevel < 3).putInt("saved_level", next)
+                .putBoolean("has_save", currentLevel < MAX_LEVEL).putInt("saved_level", next)
                 .putFloat("saved_checkpoint", 90).putInt("saved_level_coins", 0).apply();
-        hasSave = currentLevel < 3;
+        hasSave = currentLevel < MAX_LEVEL;
         repairTimer = 0;
         screen = Screen.REPAIR;
         play(sndWin, .9f);
@@ -482,7 +483,7 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void continueAfterRepair() {
-        if (currentLevel < 3) startLevel(currentLevel + 1, false);
+        if (currentLevel < MAX_LEVEL) startLevel(currentLevel + 1, false);
         else {
             prefs.edit().putBoolean("has_save", false).apply();
             hasSave = false;
@@ -527,7 +528,7 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
         c.drawRoundRect(new RectF(58, 48, 660, 204), 30, 30, p); p.setStyle(Paint.Style.FILL);
         text(c, "РЕМОНТНИК", 62, 92, 125, Color.WHITE, Paint.Align.LEFT, true);
         text(c, "СТАРЫЙ ДОМ", 42, 96, 171, Color.rgb(255, 198, 48), Paint.Align.LEFT, true);
-        text(c, "Платформер • 3 уровня • ремонт дома", 20, 94, 196, Color.rgb(196, 207, 222), Paint.Align.LEFT, false);
+        text(c, "Платформер • 5 уровней • ремонт дома", 20, 94, 196, Color.rgb(196, 207, 222), Paint.Align.LEFT, false);
 
         float y = 265;
         drawButton(c, new RectF(85, y, 505, y + 66), "НОВАЯ ИГРА", true, Color.rgb(196, 71, 45)); y += 78;
@@ -539,6 +540,9 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
         text(c, "Монеты: " + totalCoins, 24, 1190, 48, Color.rgb(255, 210, 50), Paint.Align.RIGHT, true);
         drawCoin(c, 1210, 38, 13, time);
         CharacterPainter.draw(c, p, 930, 650, 2.15f, false, time * 5, false, 0, false);
+        p.setColor(Color.argb(190, 18, 22, 30));
+        c.drawRoundRect(new RectF(790, 660, 1080, 706), 16, 16, p);
+        text(c, "ИГОРЬ МЁДОВ", 27, 935, 692, Color.WHITE, Paint.Align.CENTER, true);
     }
 
     private void drawMenuBackground(Canvas c) {
@@ -579,33 +583,98 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
         p.setColor(Color.argb(40,0,0,0)); c.drawCircle(cx, y + 33, 18, p);
     }
 
+    private RectF levelCardRect(int levelNumber) {
+        float x;
+        float y;
+        if (levelNumber <= 3) {
+            x = 55 + (levelNumber - 1) * 405;
+            y = 126;
+        } else {
+            x = 257 + (levelNumber - 4) * 405;
+            y = 382;
+        }
+        return new RectF(x, y, x + 360, y + 230);
+    }
+
+    private RectF levelPlayButtonRect(int levelNumber) {
+        RectF card = levelCardRect(levelNumber);
+        return new RectF(card.left + 70, card.bottom - 49, card.right - 70, card.bottom - 8);
+    }
+
+    private String levelSubtitle(int n) {
+        switch (n) {
+            case 1: return "Дорога к дому";
+            case 2: return "Старый квартал";
+            case 3: return "Разрушенный участок";
+            case 4: return "Ночная стройка";
+            default: return "Финальный рывок";
+        }
+    }
+
     private void drawLevelSelect(Canvas c) {
         drawSimpleBackdrop(c, "ВЫБОР УРОВНЯ");
-        for (int i = 1; i <= 3; i++) {
-            float x = 100 + (i - 1) * 390;
-            RectF card = new RectF(x, 180, x + 320, 535);
+        for (int i = 1; i <= MAX_LEVEL; i++) {
+            RectF card = levelCardRect(i);
             boolean unlocked = i <= unlockedLevel;
             p.setColor(unlocked ? Color.rgb(32, 42, 56) : Color.rgb(48, 49, 55));
-            c.drawRoundRect(card, 24, 24, p);
-            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3); p.setColor(unlocked ? Color.rgb(255, 194, 45) : Color.rgb(90, 90, 95)); c.drawRoundRect(card,24,24,p); p.setStyle(Paint.Style.FILL);
-            drawLevelPreview(c, x + 18, 205, 284, 180, i, unlocked);
-            text(c, "УРОВЕНЬ " + i, 34, x + 160, 430, unlocked ? Color.WHITE : Color.LTGRAY, Paint.Align.CENTER, true);
-            String subtitle = i == 1 ? "Дорога к дому" : i == 2 ? "Старый квартал" : "Последний участок";
-            text(c, subtitle, 22, x + 160, 468, Color.rgb(190, 201, 215), Paint.Align.CENTER, false);
-            drawButton(c, new RectF(x + 45, 485, x + 275, 535), unlocked ? "ИГРАТЬ" : "ЗАКРЫТО", unlocked, Color.rgb(49, 126, 88));
+            c.drawRoundRect(card, 22, 22, p);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(3);
+            p.setColor(unlocked ? Color.rgb(255, 194, 45) : Color.rgb(90, 90, 95));
+            c.drawRoundRect(card, 22, 22, p);
+            p.setStyle(Paint.Style.FILL);
+            drawLevelPreview(c, card.left + 14, card.top + 14, card.width() - 28, 102, i, unlocked);
+            text(c, "УРОВЕНЬ " + i, 29, card.centerX(), card.top + 145,
+                    unlocked ? Color.WHITE : Color.LTGRAY, Paint.Align.CENTER, true);
+            text(c, levelSubtitle(i), 19, card.centerX(), card.top + 172,
+                    Color.rgb(190, 201, 215), Paint.Align.CENTER, false);
+            drawButton(c, levelPlayButtonRect(i), unlocked ? "ИГРАТЬ" : "ЗАКРЫТО", unlocked,
+                    Color.rgb(49, 126, 88));
         }
-        drawButton(c, new RectF(500, 620, 780, 682), "НАЗАД", true, Color.rgb(75, 83, 98));
+        drawButton(c, new RectF(500, 650, 780, 708), "НАЗАД", true, Color.rgb(75, 83, 98));
+    }
+
+    private int themeTop(int theme) {
+        switch (theme) {
+            case 0: return Color.rgb(112, 184, 229);
+            case 1: return Color.rgb(92, 111, 139);
+            case 2: return Color.rgb(241, 130, 74);
+            case 3: return Color.rgb(39, 55, 91);
+            default: return Color.rgb(30, 34, 52);
+        }
+    }
+
+    private int themeBottom(int theme) {
+        switch (theme) {
+            case 0: return Color.rgb(230, 220, 164);
+            case 1: return Color.rgb(179, 183, 184);
+            case 2: return Color.rgb(96, 71, 111);
+            case 3: return Color.rgb(96, 67, 104);
+            default: return Color.rgb(122, 54, 58);
+        }
     }
 
     private void drawLevelPreview(Canvas c, float x, float y, float w, float h, int n, boolean unlocked) {
-        c.save(); c.clipRect(x,y,x+w,y+h);
-        int top = n == 1 ? Color.rgb(112,184,229) : n == 2 ? Color.rgb(92,111,139) : Color.rgb(241,130,74);
-        int bottom = n == 1 ? Color.rgb(230,220,164) : n == 2 ? Color.rgb(179,183,184) : Color.rgb(96,71,111);
-        p.setShader(new LinearGradient(0,y,0,y+h,top,bottom,Shader.TileMode.CLAMP)); c.drawRect(x,y,x+w,y+h,p); p.setShader(null);
-        p.setColor(n==1?Color.rgb(75,139,73):Color.rgb(69,77,83)); c.drawRect(x,y+h-45,x+w,y+h,p);
-        drawHouse(c,x+w-75,y+h-52,.38f,n-1,true);
-        CharacterPainter.draw(c,p,x+90,y+h-30,.58f,true,time*5,false,0,false);
-        if (!unlocked) { p.setColor(Color.argb(160,20,20,24)); c.drawRect(x,y,x+w,y+h,p); drawLockIcon(c, x + w / 2, y + h / 2, 1f); }
+        c.save();
+        c.clipRect(x, y, x + w, y + h);
+        int theme = Math.min(4, n - 1);
+        p.setShader(new LinearGradient(0, y, 0, y + h, themeTop(theme), themeBottom(theme), Shader.TileMode.CLAMP));
+        c.drawRect(x, y, x + w, y + h, p);
+        p.setShader(null);
+        int groundColor = theme == 0 ? Color.rgb(75, 139, 73)
+                : theme == 1 ? Color.rgb(69, 77, 83)
+                : theme == 2 ? Color.rgb(96, 72, 74)
+                : theme == 3 ? Color.rgb(58, 63, 78)
+                : Color.rgb(77, 53, 50);
+        p.setColor(groundColor);
+        c.drawRect(x, y + h - 31, x + w, y + h, p);
+        drawHouse(c, x + w - 58, y + h - 29, .29f, n - 1, true);
+        CharacterPainter.draw(c, p, x + 74, y + h - 19, .43f, true, time * 5, false, 0, false);
+        if (!unlocked) {
+            p.setColor(Color.argb(160, 20, 20, 24));
+            c.drawRect(x, y, x + w, y + h, p);
+            drawLockIcon(c, x + w / 2, y + h / 2, .72f);
+        }
         c.restore();
     }
 
@@ -633,51 +702,218 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void drawLevelBackground(Canvas c, int theme, float cam) {
-        int top = theme == 0 ? Color.rgb(111,185,231) : theme == 1 ? Color.rgb(91,112,143) : Color.rgb(241,127,70);
-        int bottom = theme == 0 ? Color.rgb(236,226,178) : theme == 1 ? Color.rgb(184,190,194) : Color.rgb(102,72,119);
-        p.setShader(new LinearGradient(0,0,0,H,top,bottom,Shader.TileMode.CLAMP)); c.drawRect(0,0,W,H,p); p.setShader(null);
-        if (theme == 2) { p.setColor(Color.rgb(255,211,87)); c.drawCircle(1040,130,58,p); p.setColor(Color.argb(40,255,238,170)); c.drawCircle(1040,130,94,p); }
-        else { drawCloud(c, 160 - cam*.08f % 1450, 100, 1f); drawCloud(c, 720 - cam*.06f % 1500, 150, .7f); drawCloud(c, 1100 - cam*.1f % 1600, 75, 1.2f); }
-        p.setColor(theme == 0 ? Color.rgb(101,150,99) : theme == 1 ? Color.rgb(91,102,110) : Color.rgb(92,73,104));
-        Path far = new Path(); far.moveTo(0,500); for(int x=0;x<=1280;x+=160) far.lineTo(x,430+(float)Math.sin((x+cam*.18f)*.006f)*55); far.lineTo(1280,720); far.lineTo(0,720); far.close(); c.drawPath(far,p);
-        p.setColor(theme == 0 ? Color.rgb(69,124,73) : theme == 1 ? Color.rgb(68,77,84) : Color.rgb(65,60,85));
-        Path near = new Path(); near.moveTo(0,570); for(int x=0;x<=1280;x+=120) near.lineTo(x,505+(float)Math.sin((x+cam*.28f)*.008f)*45); near.lineTo(1280,720); near.lineTo(0,720); near.close(); c.drawPath(near,p);
-        if(theme==1) { p.setColor(Color.argb(90,220,235,246)); p.setStrokeWidth(2); for(int i=0;i<70;i++){ float x=(i*173+time*260)%1400-60; float y=(i*97+time*410)%720; c.drawLine(x,y,x-8,y+18,p);} }
+        p.setShader(new LinearGradient(0, 0, 0, H, themeTop(theme), themeBottom(theme), Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, W, H, p);
+        p.setShader(null);
+
+        if (theme == 2) {
+            p.setColor(Color.rgb(255, 211, 87));
+            c.drawCircle(1040, 130, 58, p);
+            p.setColor(Color.argb(40, 255, 238, 170));
+            c.drawCircle(1040, 130, 94, p);
+        } else if (theme == 3) {
+            p.setColor(Color.rgb(231, 234, 210));
+            c.drawCircle(1040, 112, 42, p);
+            p.setColor(Color.rgb(39, 55, 91));
+            c.drawCircle(1058, 100, 39, p);
+            for (int i = 0; i < 32; i++) {
+                float sx = (i * 149 + 41) % 1260;
+                float sy = 35 + (i * 83) % 245;
+                float r = 1.3f + (i % 3) * .7f;
+                p.setColor(Color.argb(150 + (i % 3) * 30, 255, 244, 191));
+                c.drawCircle(sx, sy, r, p);
+            }
+        } else if (theme == 4) {
+            p.setColor(Color.argb(120, 255, 229, 160));
+            c.drawCircle(1100, 115, 34, p);
+            p.setStrokeWidth(6);
+            p.setColor(Color.argb(170, 236, 239, 255));
+            for (int i = 0; i < 3; i++) {
+                float bx = 230 + i * 390 - (cam * .04f % 120);
+                Path bolt = new Path();
+                bolt.moveTo(bx, 65 + i * 25);
+                bolt.lineTo(bx - 24, 130 + i * 18);
+                bolt.lineTo(bx + 2, 130 + i * 18);
+                bolt.lineTo(bx - 30, 205 + i * 12);
+                c.drawPath(bolt, p);
+            }
+            p.setStrokeWidth(2);
+            p.setColor(Color.argb(90, 220, 235, 246));
+            for (int i = 0; i < 65; i++) {
+                float rx = (i * 173 + time * 360) % 1400 - 60;
+                float ry = (i * 97 + time * 470) % 720;
+                c.drawLine(rx, ry, rx - 10, ry + 24, p);
+            }
+        } else {
+            drawCloud(c, 160 - cam * .08f % 1450, 100, 1f);
+            drawCloud(c, 720 - cam * .06f % 1500, 150, .7f);
+            drawCloud(c, 1100 - cam * .1f % 1600, 75, 1.2f);
+        }
+
+        int farColor = theme == 0 ? Color.rgb(101, 150, 99)
+                : theme == 1 ? Color.rgb(91, 102, 110)
+                : theme == 2 ? Color.rgb(92, 73, 104)
+                : theme == 3 ? Color.rgb(53, 60, 82)
+                : Color.rgb(65, 47, 59);
+        p.setColor(farColor);
+        Path far = new Path();
+        far.moveTo(0, 500);
+        for (int x = 0; x <= 1280; x += 160) {
+            far.lineTo(x, 430 + (float) Math.sin((x + cam * .18f) * .006f) * 55);
+        }
+        far.lineTo(1280, 720);
+        far.lineTo(0, 720);
+        far.close();
+        c.drawPath(far, p);
+
+        int nearColor = theme == 0 ? Color.rgb(69, 124, 73)
+                : theme == 1 ? Color.rgb(68, 77, 84)
+                : theme == 2 ? Color.rgb(65, 60, 85)
+                : theme == 3 ? Color.rgb(39, 45, 64)
+                : Color.rgb(48, 39, 52);
+        p.setColor(nearColor);
+        Path near = new Path();
+        near.moveTo(0, 570);
+        for (int x = 0; x <= 1280; x += 120) {
+            near.lineTo(x, 505 + (float) Math.sin((x + cam * .28f) * .008f) * 45);
+        }
+        near.lineTo(1280, 720);
+        near.lineTo(0, 720);
+        near.close();
+        c.drawPath(near, p);
+
+        if (theme == 1) {
+            p.setColor(Color.argb(90, 220, 235, 246));
+            p.setStrokeWidth(2);
+            for (int i = 0; i < 70; i++) {
+                float x = (i * 173 + time * 260) % 1400 - 60;
+                float y = (i * 97 + time * 410) % 720;
+                c.drawLine(x, y, x - 8, y + 18, p);
+            }
+        }
     }
 
     private void drawWorldDecor(Canvas c) {
         int theme = level.theme;
-        for (int i = 0; i < (int)(level.worldWidth / 320); i++) {
+        for (int i = 0; i < (int) (level.worldWidth / 320); i++) {
             float x = 130 + i * 330;
-            if (theme == 0) drawTree(c, x, 617, .72f + (i%3)*.08f);
-            else if (theme == 1) drawLamp(c, x, 620);
-            else drawRuinedWall(c, x, 620, i%2);
+            if (theme == 0) {
+                drawTree(c, x, 617, .72f + (i % 3) * .08f);
+            } else if (theme == 1) {
+                drawLamp(c, x, 620);
+            } else if (theme == 2) {
+                drawRuinedWall(c, x, 620, i % 2);
+            } else if (theme == 3) {
+                if (i % 2 == 0) drawLamp(c, x, 620);
+                else drawRuinedWall(c, x, 620, 1);
+            } else {
+                drawRuinedWall(c, x, 620, 1 + i % 2);
+                if (i % 3 == 0) drawLamp(c, x + 90, 620);
+            }
         }
     }
 
     private void drawPlatform(Canvas c, LevelData.Platform platform) {
         RectF r = platform.rect;
+        int groundBase = level.theme == 0 ? Color.rgb(107, 75, 48)
+                : level.theme == 1 ? Color.rgb(87, 75, 66)
+                : level.theme == 2 ? Color.rgb(83, 58, 55)
+                : level.theme == 3 ? Color.rgb(62, 59, 66)
+                : Color.rgb(67, 48, 46);
+        int groundTop = level.theme == 0 ? Color.rgb(74, 150, 72)
+                : level.theme == 1 ? Color.rgb(103, 115, 108)
+                : level.theme == 2 ? Color.rgb(131, 92, 66)
+                : level.theme == 3 ? Color.rgb(102, 106, 119)
+                : Color.rgb(143, 76, 57);
+        int brick = level.theme == 0 ? Color.rgb(206, 113, 58)
+                : level.theme == 1 ? Color.rgb(122, 126, 129)
+                : level.theme == 2 ? Color.rgb(174, 78, 53)
+                : level.theme == 3 ? Color.rgb(105, 112, 132)
+                : Color.rgb(187, 86, 56);
         if (platform.style == 0) {
-            p.setColor(level.theme == 0 ? Color.rgb(107,75,48) : level.theme == 1 ? Color.rgb(87,75,66) : Color.rgb(83,58,55)); c.drawRect(r,p);
-            p.setColor(level.theme == 0 ? Color.rgb(74,150,72) : level.theme == 1 ? Color.rgb(103,115,108) : Color.rgb(131,92,66)); c.drawRect(r.left,r.top,r.right,r.top+15,p);
-            p.setColor(Color.argb(55,255,255,255)); c.drawRect(r.left,r.top,r.right,r.top+4,p);
-            p.setColor(Color.argb(55,0,0,0)); p.setStrokeWidth(2); for(float x=r.left+22;x<r.right;x+=44) c.drawLine(x,r.top+22,x-15,r.bottom,p);
+            p.setColor(groundBase);
+            c.drawRect(r, p);
+            p.setColor(groundTop);
+            c.drawRect(r.left, r.top, r.right, r.top + 15, p);
+            p.setColor(Color.argb(55, 255, 255, 255));
+            c.drawRect(r.left, r.top, r.right, r.top + 4, p);
+            p.setColor(Color.argb(55, 0, 0, 0));
+            p.setStrokeWidth(2);
+            for (float x = r.left + 22; x < r.right; x += 44) c.drawLine(x, r.top + 22, x - 15, r.bottom, p);
         } else {
-            p.setColor(Color.rgb(70,49,38)); c.drawRoundRect(r,8,8,p);
-            p.setColor(level.theme == 0 ? Color.rgb(206,113,58) : level.theme == 1 ? Color.rgb(122,126,129) : Color.rgb(174,78,53)); c.drawRoundRect(new RectF(r.left+3,r.top+3,r.right-3,r.bottom-4),7,7,p);
-            p.setColor(Color.argb(70,255,255,255)); c.drawRect(r.left+9,r.top+5,r.right-9,r.top+9,p);
-            p.setColor(Color.argb(80,40,20,15)); p.setStrokeWidth(2); for(float x=r.left+40;x<r.right;x+=55)c.drawLine(x,r.top+5,x,r.bottom-5,p);
+            p.setColor(Color.rgb(70, 49, 38));
+            c.drawRoundRect(r, 8, 8, p);
+            p.setColor(brick);
+            c.drawRoundRect(new RectF(r.left + 3, r.top + 3, r.right - 3, r.bottom - 4), 7, 7, p);
+            p.setColor(Color.argb(70, 255, 255, 255));
+            c.drawRect(r.left + 9, r.top + 5, r.right - 9, r.top + 9, p);
+            p.setColor(Color.argb(80, 40, 20, 15));
+            p.setStrokeWidth(2);
+            for (float x = r.left + 40; x < r.right; x += 55) c.drawLine(x, r.top + 5, x, r.bottom - 5, p);
         }
     }
 
     private void drawHazard(Canvas c, LevelData.Hazard h) {
         if (h.type == 1) {
-            p.setColor(Color.rgb(74,79,85)); c.drawRect(h.rect,p);
-            p.setColor(Color.rgb(222,93,47)); for(float x=h.rect.left+12;x<h.rect.right;x+=24)c.drawCircle(x,h.rect.centerY(),7,p);
+            p.setColor(Color.rgb(74, 79, 85));
+            c.drawRect(h.rect, p);
+            p.setColor(Color.rgb(222, 93, 47));
+            for (float x = h.rect.left + 12; x < h.rect.right; x += 24) c.drawCircle(x, h.rect.centerY(), 7, p);
+        } else if (h.type == 2) {
+            p.setColor(Color.rgb(75, 45, 33));
+            c.drawRect(h.rect.left, h.rect.bottom - 8, h.rect.right, h.rect.bottom, p);
+            for (float x = h.rect.left + 12; x < h.rect.right; x += 24) {
+                float flicker = (float) Math.sin(time * 11 + x * .08f) * 5f;
+                Path flame = new Path();
+                flame.moveTo(x - 9, h.rect.bottom - 5);
+                flame.cubicTo(x - 15, h.rect.top + 18, x - 2, h.rect.top + 12 + flicker, x, h.rect.top);
+                flame.cubicTo(x + 10, h.rect.top + 14, x + 15, h.rect.top + 22, x + 9, h.rect.bottom - 5);
+                flame.close();
+                p.setColor(Color.rgb(237, 79, 35));
+                c.drawPath(flame, p);
+                p.setColor(Color.rgb(255, 202, 44));
+                c.drawOval(new RectF(x - 4, h.rect.top + 14, x + 5, h.rect.bottom - 6), p);
+            }
+        } else if (h.type == 3) {
+            float radius = Math.min(h.rect.width(), h.rect.height()) * .48f;
+            float cy = h.rect.centerY();
+            for (float x = h.rect.left + radius; x <= h.rect.right - radius + 1; x += radius * 1.65f) {
+                c.save();
+                c.translate(x, cy);
+                c.rotate(time * 260f + x);
+                p.setColor(Color.rgb(198, 204, 210));
+                Path saw = new Path();
+                int teeth = 12;
+                for (int i = 0; i < teeth * 2; i++) {
+                    double a = Math.PI * 2 * i / (teeth * 2);
+                    float rr = i % 2 == 0 ? radius : radius * .72f;
+                    float px = (float) Math.cos(a) * rr;
+                    float py = (float) Math.sin(a) * rr;
+                    if (i == 0) saw.moveTo(px, py); else saw.lineTo(px, py);
+                }
+                saw.close();
+                c.drawPath(saw, p);
+                p.setColor(Color.rgb(81, 86, 94));
+                c.drawCircle(0, 0, radius * .32f, p);
+                p.setColor(Color.rgb(224, 126, 46));
+                c.drawCircle(0, 0, radius * .12f, p);
+                c.restore();
+            }
         } else {
-            p.setColor(Color.rgb(82,86,91));
-            float step=24; for(float x=h.rect.left;x<h.rect.right;x+=step){ Path path=new Path(); path.moveTo(x,h.rect.bottom); path.lineTo(x+step/2,h.rect.top); path.lineTo(x+step,h.rect.bottom); path.close(); c.drawPath(path,p); }
-            p.setColor(Color.rgb(215,220,225)); for(float x=h.rect.left+4;x<h.rect.right;x+=step)c.drawLine(x+step/2,h.rect.top+3,x+step/2,h.rect.bottom-3,p);
+            p.setColor(Color.rgb(82, 86, 91));
+            float step = 24;
+            for (float x = h.rect.left; x < h.rect.right; x += step) {
+                Path path = new Path();
+                path.moveTo(x, h.rect.bottom);
+                path.lineTo(x + step / 2, h.rect.top);
+                path.lineTo(x + step, h.rect.bottom);
+                path.close();
+                c.drawPath(path, p);
+            }
+            p.setColor(Color.rgb(215, 220, 225));
+            for (float x = h.rect.left + 4; x < h.rect.right; x += step) {
+                c.drawLine(x + step / 2, h.rect.top + 3, x + step / 2, h.rect.bottom - 3, p);
+            }
         }
     }
 
@@ -689,19 +925,77 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void drawEnemy(Canvas c, LevelData.Enemy e) {
-        float bob=(float)Math.sin(time*7+e.x*.02f)*2;
-        c.save(); c.translate(e.x,e.y+bob); c.scale(e.dir,1);
-        p.setColor(Color.argb(55,0,0,0)); c.drawOval(new RectF(-28,-5,28,7),p);
-        if(e.type==0){
-            p.setColor(Color.rgb(73,55,49)); c.drawOval(new RectF(-27,-44,27,0),p); p.setColor(Color.rgb(108,77,63)); c.drawOval(new RectF(-21,-39,21,-3),p);
-            p.setColor(Color.rgb(239,189,151)); c.drawCircle(18,-28,7,p); p.setColor(Color.RED); c.drawCircle(13,-27,2.5f,p); p.setColor(Color.rgb(43,31,28)); c.drawCircle(24,-24,3,p);
-            p.setStrokeWidth(2); c.drawLine(20,-21,34,-16,p); c.drawLine(20,-19,34,-20,p);
-        }else if(e.type==1){
-            p.setColor(Color.rgb(40,46,52)); c.drawRoundRect(new RectF(-25,-43,25,0),12,12,p); p.setColor(Color.rgb(219,145,52)); c.drawRoundRect(new RectF(-19,-37,19,-5),9,9,p);
-            p.setColor(Color.WHITE); c.drawOval(new RectF(0,-30,15,-18),p); p.setColor(Color.rgb(25,25,25)); c.drawCircle(9,-24,3,p); p.setColor(Color.rgb(185,45,40)); c.drawRect(-15,-15,13,-10,p);
-        }else{
-            p.setColor(Color.rgb(38,42,50)); c.drawCircle(0,-24,25,p); p.setColor(Color.rgb(88,96,108)); c.drawCircle(0,-24,18,p); p.setColor(Color.WHITE); c.drawCircle(8,-29,5,p); p.setColor(Color.BLACK); c.drawCircle(10,-29,2,p);
-            p.setColor(Color.rgb(190,190,196)); p.setStrokeWidth(5); c.drawLine(-18,-7,-27,4,p); c.drawLine(18,-7,27,4,p);
+        float bob = (float) Math.sin(time * 7 + e.x * .02f) * 2;
+        c.save();
+        c.translate(e.x, e.y + bob);
+        c.scale(e.dir, 1);
+        p.setColor(Color.argb(55, 0, 0, 0));
+        c.drawOval(new RectF(-28, -5, 28, 7), p);
+        if (e.type == 0) {
+            p.setColor(Color.rgb(73, 55, 49));
+            c.drawOval(new RectF(-27, -44, 27, 0), p);
+            p.setColor(Color.rgb(108, 77, 63));
+            c.drawOval(new RectF(-21, -39, 21, -3), p);
+            p.setColor(Color.rgb(239, 189, 151));
+            c.drawCircle(18, -28, 7, p);
+            p.setColor(Color.RED);
+            c.drawCircle(13, -27, 2.5f, p);
+            p.setColor(Color.rgb(43, 31, 28));
+            c.drawCircle(24, -24, 3, p);
+            p.setStrokeWidth(2);
+            c.drawLine(20, -21, 34, -16, p);
+            c.drawLine(20, -19, 34, -20, p);
+        } else if (e.type == 1) {
+            p.setColor(Color.rgb(40, 46, 52));
+            c.drawRoundRect(new RectF(-25, -43, 25, 0), 12, 12, p);
+            p.setColor(Color.rgb(219, 145, 52));
+            c.drawRoundRect(new RectF(-19, -37, 19, -5), 9, 9, p);
+            p.setColor(Color.WHITE);
+            c.drawOval(new RectF(0, -30, 15, -18), p);
+            p.setColor(Color.rgb(25, 25, 25));
+            c.drawCircle(9, -24, 3, p);
+            p.setColor(Color.rgb(185, 45, 40));
+            c.drawRect(-15, -15, 13, -10, p);
+        } else if (e.type == 3) {
+            // Fast construction drone used on hard levels.
+            p.setColor(Color.rgb(37, 42, 49));
+            c.drawRoundRect(new RectF(-29, -39, 29, -3), 9, 9, p);
+            p.setColor(Color.rgb(210, 91, 43));
+            c.drawRoundRect(new RectF(-23, -34, 23, -8), 7, 7, p);
+            p.setColor(Color.rgb(241, 205, 75));
+            c.drawRect(-18, -29, 14, -24, p);
+            p.setColor(Color.WHITE);
+            c.drawCircle(12, -20, 5, p);
+            p.setColor(Color.rgb(25, 25, 25));
+            c.drawCircle(13, -20, 2.2f, p);
+            p.setColor(Color.rgb(118, 126, 137));
+            c.drawCircle(-17, -2, 8, p);
+            c.drawCircle(17, -2, 8, p);
+            p.setColor(Color.rgb(35, 38, 43));
+            c.drawCircle(-17, -2, 3, p);
+            c.drawCircle(17, -2, 3, p);
+            p.setColor(Color.rgb(226, 106, 41));
+            Path beacon = new Path();
+            beacon.moveTo(-5, -39);
+            beacon.lineTo(0, -52);
+            beacon.lineTo(5, -39);
+            beacon.close();
+            c.drawPath(beacon, p);
+            p.setColor(Color.rgb(255, 220, 81));
+            c.drawCircle(0, -47, 3, p);
+        } else {
+            p.setColor(Color.rgb(38, 42, 50));
+            c.drawCircle(0, -24, 25, p);
+            p.setColor(Color.rgb(88, 96, 108));
+            c.drawCircle(0, -24, 18, p);
+            p.setColor(Color.WHITE);
+            c.drawCircle(8, -29, 5, p);
+            p.setColor(Color.BLACK);
+            c.drawCircle(10, -29, 2, p);
+            p.setColor(Color.rgb(190, 190, 196));
+            p.setStrokeWidth(5);
+            c.drawLine(-18, -7, -27, 4, p);
+            c.drawLine(18, -7, 27, 4, p);
         }
         c.restore();
     }
@@ -758,31 +1052,86 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void drawRepair(Canvas c) {
-        int stage=currentLevel;
-        int skyTop=stage==1?Color.rgb(118,183,222):stage==2?Color.rgb(236,169,92):Color.rgb(75,91,132);
-        int skyBottom=stage==1?Color.rgb(239,220,174):stage==2?Color.rgb(126,89,111):Color.rgb(34,44,68);
-        p.setShader(new LinearGradient(0,0,0,H,skyTop,skyBottom,Shader.TileMode.CLAMP));c.drawRect(0,0,W,H,p);p.setShader(null);
-        text(c,"УРОВЕНЬ " + stage + " ПРОЙДЕН",42,640,70,Color.WHITE,Paint.Align.CENTER,true);
-        text(c,"Ремонтируем старый дом",27,640,110,Color.rgb(255,215,88),Paint.Align.CENTER,false);
-        p.setColor(Color.rgb(72,111,66));c.drawRect(0,610,W,H,p);
-        int before=Math.max(0,stage-1); int after=repairTimer>3.6f?stage:before;
-        drawHouse(c,810,585,1.65f,after,true);
-        float strike=(repairTimer%1.05f)/1.05f;
-        float hp=strike<.55f?strike/.55f:Math.max(0,1-(strike-.55f)/.45f);
-        CharacterPainter.draw(c,p,390,620,1.65f,true,time*5,false,hp,false);
-        if(strike>.48f&&strike<.68f&&repairTimer<4.2f){for(int i=0;i<8;i++){float a=(float)(i*Math.PI/4);p.setColor(i%2==0?Color.YELLOW:Color.WHITE);c.drawCircle(545+(float)Math.cos(a)*28,420+(float)Math.sin(a)*28,4,p);}}
-        float bar=clamp(repairTimer/4.2f,0,1);p.setColor(Color.argb(150,20,22,30));c.drawRoundRect(new RectF(350,655,930,687),16,16,p);p.setColor(Color.rgb(255,192,43));c.drawRoundRect(new RectF(355,660,355+570*bar,682),11,11,p);
-        if(repairTimer>4.2f){text(c,stage==3?"Дом полностью восстановлен!":"Часть дома восстановлена",30,640,150,Color.WHITE,Paint.Align.CENTER,true);drawButton(c,new RectF(500,545,780,610),stage==3?"ФИНАЛ":"ДАЛЬШЕ",true,Color.rgb(47,139,91));}
+        int stage = currentLevel;
+        int skyTop;
+        int skyBottom;
+        switch (stage) {
+            case 1:
+                skyTop = Color.rgb(118, 183, 222);
+                skyBottom = Color.rgb(239, 220, 174);
+                break;
+            case 2:
+                skyTop = Color.rgb(236, 169, 92);
+                skyBottom = Color.rgb(126, 89, 111);
+                break;
+            case 3:
+                skyTop = Color.rgb(75, 91, 132);
+                skyBottom = Color.rgb(34, 44, 68);
+                break;
+            case 4:
+                skyTop = Color.rgb(49, 63, 102);
+                skyBottom = Color.rgb(91, 58, 85);
+                break;
+            default:
+                skyTop = Color.rgb(94, 172, 215);
+                skyBottom = Color.rgb(246, 202, 115);
+                break;
+        }
+        p.setShader(new LinearGradient(0, 0, 0, H, skyTop, skyBottom, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, W, H, p);
+        p.setShader(null);
+        text(c, "УРОВЕНЬ " + stage + " ПРОЙДЕН", 42, 640, 70, Color.WHITE, Paint.Align.CENTER, true);
+        text(c, "Игорь Мёдов ремонтирует старый дом", 27, 640, 110,
+                Color.rgb(255, 215, 88), Paint.Align.CENTER, false);
+        p.setColor(Color.rgb(72, 111, 66));
+        c.drawRect(0, 610, W, H, p);
+
+        int before = Math.max(0, stage - 1);
+        int after = repairTimer > 3.6f ? stage : before;
+        drawHouse(c, 810, 585, 1.65f, after, true);
+
+        float strike = (repairTimer % 1.05f) / 1.05f;
+        float hp = strike < .55f ? strike / .55f : Math.max(0, 1 - (strike - .55f) / .45f);
+        CharacterPainter.draw(c, p, 390, 620, 1.65f, true, time * 5, false, hp, false);
+        if (strike > .48f && strike < .68f && repairTimer < 4.2f) {
+            for (int i = 0; i < 8; i++) {
+                float a = (float) (i * Math.PI / 4);
+                p.setColor(i % 2 == 0 ? Color.YELLOW : Color.WHITE);
+                c.drawCircle(545 + (float) Math.cos(a) * 28,
+                        420 + (float) Math.sin(a) * 28, 4, p);
+            }
+        }
+        float bar = clamp(repairTimer / 4.2f, 0, 1);
+        p.setColor(Color.argb(150, 20, 22, 30));
+        c.drawRoundRect(new RectF(350, 655, 930, 687), 16, 16, p);
+        p.setColor(Color.rgb(255, 192, 43));
+        c.drawRoundRect(new RectF(355, 660, 355 + 570 * bar, 682), 11, 11, p);
+        if (repairTimer > 4.2f) {
+            text(c, stage == MAX_LEVEL ? "Дом полностью восстановлен!" : "Следующая часть дома готова",
+                    30, 640, 150, Color.WHITE, Paint.Align.CENTER, true);
+            drawButton(c, new RectF(500, 545, 780, 610), stage == MAX_LEVEL ? "ФИНАЛ" : "ДАЛЬШЕ",
+                    true, Color.rgb(47, 139, 91));
+        }
     }
 
     private void drawVictory(Canvas c) {
-        p.setShader(new LinearGradient(0,0,0,H,Color.rgb(75,157,212),Color.rgb(241,207,130),Shader.TileMode.CLAMP));c.drawRect(0,0,W,H,p);p.setShader(null);
-        drawCloud(c,120,100,1);drawCloud(c,840,80,1.2f);p.setColor(Color.rgb(72,142,72));c.drawRect(0,590,W,H,p);
-        drawHouse(c,820,575,1.7f,3,true);CharacterPainter.draw(c,p,370,620,1.7f,true,time*4,false,0,true);
-        p.setColor(Color.argb(210,18,23,32));c.drawRoundRect(new RectF(115,65,1165,195),30,30,p);
-        text(c,"ДОМ ВОССТАНОВЛЕН!",56,640,130,Color.WHITE,Paint.Align.CENTER,true);
-        text(c,"Все 3 уровня пройдены • собрано монет: " + totalCoins,26,640,174,Color.rgb(255,210,56),Paint.Align.CENTER,false);
-        drawButton(c,new RectF(485,620,795,684),"В ГЛАВНОЕ МЕНЮ",true,Color.rgb(49,126,88));
+        p.setShader(new LinearGradient(0, 0, 0, H, Color.rgb(75, 157, 212),
+                Color.rgb(241, 207, 130), Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, W, H, p);
+        p.setShader(null);
+        drawCloud(c, 120, 100, 1);
+        drawCloud(c, 840, 80, 1.2f);
+        p.setColor(Color.rgb(72, 142, 72));
+        c.drawRect(0, 590, W, H, p);
+        drawHouse(c, 820, 575, 1.7f, MAX_LEVEL, true);
+        CharacterPainter.draw(c, p, 370, 620, 1.7f, true, time * 4, false, 0, true);
+        p.setColor(Color.argb(210, 18, 23, 32));
+        c.drawRoundRect(new RectF(115, 65, 1165, 205), 30, 30, p);
+        text(c, "ДОМ ВОССТАНОВЛЕН!", 56, 640, 130, Color.WHITE, Paint.Align.CENTER, true);
+        text(c, "Игорь Мёдов прошёл все 5 уровней • монет: " + totalCoins,
+                25, 640, 176, Color.rgb(255, 210, 56), Paint.Align.CENTER, false);
+        drawButton(c, new RectF(485, 620, 795, 684), "В ГЛАВНОЕ МЕНЮ", true,
+                Color.rgb(49, 126, 88));
     }
 
     private void drawGameOver(Canvas c) {
@@ -809,7 +1158,142 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     private void drawLamp(Canvas c,float x,float y){p.setColor(Color.rgb(54,59,65));c.drawRect(x-4,y-115,x+5,y,p);c.drawRoundRect(new RectF(x-18,y-145,x+19,y-108),8,8,p);p.setColor(Color.rgb(255,220,112));c.drawCircle(x,y-127,10,p);p.setColor(Color.argb(45,255,225,120));c.drawCircle(x,y-127,28,p);}
     private void drawRuinedWall(Canvas c,float x,float y,int variant){p.setColor(Color.rgb(92,66,58));float h=70+variant*25;c.drawRect(x-55,y-h,x+65,y,p);p.setColor(Color.rgb(150,91,65));for(int yy=0;yy<(int)h;yy+=20)for(int xx=-50;xx<60;xx+=34)c.drawRect(x+xx+(yy/20%2)*14,y-h+yy,x+xx+28+(yy/20%2)*14,y-h+yy+15,p);}
 
-    private void drawHouse(Canvas c,float x,float ground,float s,int repairStage,boolean detail){c.save();c.translate(x,ground);c.scale(s,s);p.setColor(Color.argb(55,0,0,0));c.drawOval(new RectF(-130,-12,130,12),p);p.setColor(Color.rgb(72,48,37));c.drawRect(-105,-150,105,0,p);int wall=repairStage>=1?Color.rgb(231,205,154):Color.rgb(165,143,112);p.setColor(wall);c.drawRect(-98,-143,98,0,p);p.setColor(repairStage>=2?Color.rgb(176,61,43):Color.rgb(103,72,62));Path roof=new Path();roof.moveTo(-125,-142);roof.lineTo(0,-238);roof.lineTo(125,-142);roof.close();c.drawPath(roof,p);if(repairStage<2){p.setColor(Color.rgb(65,54,50));Path hole=new Path();hole.moveTo(18,-222);hole.lineTo(55,-193);hole.lineTo(35,-166);hole.lineTo(3,-190);hole.close();c.drawPath(hole,p);}p.setColor(Color.rgb(82,54,38));c.drawRect(-22,-86,25,0,p);p.setColor(repairStage>=3?Color.rgb(93,177,206):Color.rgb(70,91,98));c.drawRect(-78,-112,-37,-73,p);c.drawRect(42,-112,82,-73,p);p.setColor(Color.rgb(238,229,186));p.setStrokeWidth(4);c.drawLine(-57,-112,-57,-73,p);c.drawLine(-78,-92,-37,-92,p);c.drawLine(62,-112,62,-73,p);c.drawLine(42,-92,82,-92,p);if(repairStage<1){p.setColor(Color.rgb(80,69,58));p.setStrokeWidth(5);c.drawLine(-92,-45,-57,-61,p);c.drawLine(45,-28,90,-50,p);}if(repairStage>=3){p.setColor(Color.rgb(255,212,61));c.drawCircle(-57,-92,8,p);c.drawCircle(62,-92,8,p);p.setColor(Color.rgb(61,137,65));for(int i=0;i<5;i++)c.drawCircle(-100+i*50,3,15,p);}if(detail){p.setColor(Color.argb(45,255,255,255));c.drawRect(-91,-136,91,-128,p);}c.restore();}
+    private void drawHouse(Canvas c, float x, float ground, float s, int repairStage, boolean detail) {
+        int stage = Math.max(0, Math.min(MAX_LEVEL, repairStage));
+        c.save();
+        c.translate(x, ground);
+        c.scale(s, s);
+
+        p.setColor(Color.argb(55, 0, 0, 0));
+        c.drawOval(new RectF(-140, -12, 140, 13), p);
+
+        // Foundation and walls.
+        p.setColor(Color.rgb(70, 48, 38));
+        c.drawRect(-108, -151, 108, 0, p);
+        int wall = stage >= 1 ? Color.rgb(232, 207, 160) : Color.rgb(159, 139, 113);
+        p.setColor(wall);
+        c.drawRect(-100, -144, 100, 0, p);
+        if (stage >= 4) {
+            p.setColor(Color.rgb(245, 227, 184));
+            c.drawRect(-100, -144, -92, 0, p);
+            c.drawRect(92, -144, 100, 0, p);
+            c.drawRect(-100, -144, 100, -135, p);
+        }
+
+        // Roof and its gradual repair.
+        p.setColor(stage >= 2 ? Color.rgb(177, 62, 43) : Color.rgb(103, 72, 62));
+        Path roof = new Path();
+        roof.moveTo(-128, -142);
+        roof.lineTo(0, -240);
+        roof.lineTo(128, -142);
+        roof.close();
+        c.drawPath(roof, p);
+        if (stage >= 2) {
+            p.setColor(Color.rgb(207, 79, 50));
+            p.setStrokeWidth(4);
+            for (int i = 0; i < 5; i++) {
+                float yy = -153 - i * 17;
+                c.drawLine(-105 + i * 18, yy, 104 - i * 18, yy, p);
+            }
+        } else {
+            p.setColor(Color.rgb(62, 51, 49));
+            Path hole = new Path();
+            hole.moveTo(15, -224);
+            hole.lineTo(58, -193);
+            hole.lineTo(37, -163);
+            hole.lineTo(1, -188);
+            hole.close();
+            c.drawPath(hole, p);
+        }
+
+        // Chimney appears after the fourth repair.
+        if (stage >= 4) {
+            p.setColor(Color.rgb(112, 73, 57));
+            c.drawRect(58, -220, 82, -172, p);
+            p.setColor(Color.rgb(75, 52, 46));
+            c.drawRect(54, -223, 86, -215, p);
+            if (stage >= 5) {
+                p.setColor(Color.argb(70, 235, 235, 235));
+                c.drawCircle(75, -240, 11, p);
+                c.drawCircle(84, -253, 15, p);
+            }
+        }
+
+        // Door: rough first, finished at stage four.
+        p.setColor(stage >= 4 ? Color.rgb(114, 68, 39) : Color.rgb(82, 54, 38));
+        c.drawRect(-23, -87, 26, 0, p);
+        if (stage >= 4) {
+            p.setColor(Color.rgb(151, 91, 50));
+            c.drawRoundRect(new RectF(-18, -82, 21, -2), 4, 4, p);
+            p.setColor(Color.rgb(238, 197, 76));
+            c.drawCircle(13, -42, 3.5f, p);
+            p.setColor(Color.rgb(235, 218, 180));
+            c.drawRect(-29, -93, 32, -86, p);
+        }
+
+        // Windows become clear on stage three.
+        int glass = stage >= 3 ? Color.rgb(93, 177, 206) : Color.rgb(69, 88, 96);
+        p.setColor(glass);
+        c.drawRect(-80, -113, -36, -72, p);
+        c.drawRect(41, -113, 84, -72, p);
+        if (stage < 3) {
+            p.setColor(Color.rgb(59, 55, 53));
+            Path crackL = new Path();
+            crackL.moveTo(-75, -108); crackL.lineTo(-55, -91); crackL.lineTo(-68, -75);
+            c.drawPath(crackL, p);
+            Path crackR = new Path();
+            crackR.moveTo(46, -108); crackR.lineTo(65, -93); crackR.lineTo(51, -75);
+            c.drawPath(crackR, p);
+        }
+        p.setColor(Color.rgb(238, 229, 186));
+        p.setStrokeWidth(4);
+        c.drawLine(-58, -113, -58, -72, p);
+        c.drawLine(-80, -92, -36, -92, p);
+        c.drawLine(62, -113, 62, -72, p);
+        c.drawLine(41, -92, 84, -92, p);
+
+        // Boards and damaged plaster disappear after the first repair.
+        if (stage < 1) {
+            p.setColor(Color.rgb(79, 68, 58));
+            p.setStrokeWidth(6);
+            c.drawLine(-94, -47, -56, -62, p);
+            c.drawLine(44, -27, 92, -52, p);
+            c.drawLine(-91, -129, -61, -117, p);
+            p.setColor(Color.rgb(116, 98, 79));
+            c.drawCircle(78, -126, 15, p);
+            c.drawCircle(-87, -21, 11, p);
+        }
+
+        // Stage five: warm windows, garden and path.
+        if (stage >= 5) {
+            p.setColor(Color.rgb(255, 213, 68));
+            c.drawCircle(-58, -92, 8, p);
+            c.drawCircle(62, -92, 8, p);
+            p.setColor(Color.argb(55, 255, 226, 97));
+            c.drawCircle(-58, -92, 18, p);
+            c.drawCircle(62, -92, 18, p);
+
+            p.setColor(Color.rgb(61, 137, 65));
+            for (int i = 0; i < 6; i++) c.drawCircle(-105 + i * 42, 4, 15, p);
+            p.setColor(Color.rgb(231, 81, 72));
+            c.drawCircle(-83, -3, 4, p);
+            c.drawCircle(83, -3, 4, p);
+            p.setColor(Color.rgb(216, 188, 139));
+            Path path = new Path();
+            path.moveTo(-20, 0);
+            path.lineTo(-40, 20);
+            path.lineTo(47, 20);
+            path.lineTo(23, 0);
+            path.close();
+            c.drawPath(path, p);
+        }
+
+        if (detail) {
+            p.setColor(Color.argb(45, 255, 255, 255));
+            c.drawRect(-92, -137, 92, -129, p);
+        }
+        c.restore();
+    }
 
     private void drawHammerIcon(Canvas c, float x, float y, float s) {
         c.save();
@@ -886,7 +1370,15 @@ public final class GameView extends SurfaceView implements SurfaceHolder.Callbac
     private void settingsTouch(float x,float y){if(contains(new RectF(790,210,945,268),x,y)){soundEnabled=!soundEnabled;saveSettings();}else if(contains(new RectF(790,295,945,353),x,y)){musicEnabled=!musicEnabled;saveSettings();updateMusic();}else if(contains(new RectF(790,380,945,438),x,y)){vibrationEnabled=!vibrationEnabled;saveSettings();}else if(contains(new RectF(690,430,950,490),x,y)){controlSize=(controlSize+1)%3;saveSettings();}else if(contains(new RectF(315,520,600,580),x,y)){prefs.edit().clear().apply();loadPrefs();showToast("Прогресс сброшен");updateMusic();}else if(contains(new RectF(680,520,950,580),x,y)){screen=settingsReturn;updateMusic();}}
     private void saveSettings(){prefs.edit().putBoolean("sound",soundEnabled).putBoolean("music",musicEnabled).putBoolean("vibration",vibrationEnabled).putInt("control_size",controlSize).apply();}
 
-    private void levelSelectTouch(float x,float y){for(int i=1;i<=3;i++){float cx=100+(i-1)*390;if(i<=unlockedLevel&&contains(new RectF(cx+45,485,cx+275,535),x,y)){startLevel(i,false);return;}}if(contains(new RectF(500,620,780,682),x,y))screen=Screen.MENU;}
+    private void levelSelectTouch(float x, float y) {
+        for (int i = 1; i <= MAX_LEVEL; i++) {
+            if (i <= unlockedLevel && contains(levelPlayButtonRect(i), x, y)) {
+                startLevel(i, false);
+                return;
+            }
+        }
+        if (contains(new RectF(500, 650, 780, 708), x, y)) screen = Screen.MENU;
+    }
     private void pauseTouch(float x,float y){if(contains(new RectF(455,225,825,290),x,y)){screen=Screen.GAME;updateMusic();}else if(contains(new RectF(455,315,825,380),x,y)){settingsReturn=Screen.PAUSE;screen=Screen.SETTINGS;}else if(contains(new RectF(455,405,825,470),x,y)){saveCurrent();screen=Screen.MENU;updateMusic();}else if(contains(new RectF(455,495,825,560),x,y)){startLevel(currentLevel,false);}}
 
     @Override public boolean onKeyDown(int keyCode,KeyEvent event){if(keyCode==KeyEvent.KEYCODE_A||keyCode==KeyEvent.KEYCODE_DPAD_LEFT){keyLeft=true;return true;}if(keyCode==KeyEvent.KEYCODE_D||keyCode==KeyEvent.KEYCODE_DPAD_RIGHT){keyRight=true;return true;}if(keyCode==KeyEvent.KEYCODE_SPACE||keyCode==KeyEvent.KEYCODE_W||keyCode==KeyEvent.KEYCODE_DPAD_UP){jumpQueued=true;return true;}if(keyCode==KeyEvent.KEYCODE_E||keyCode==KeyEvent.KEYCODE_CTRL_LEFT){hammerQueued=true;return true;}if(keyCode==KeyEvent.KEYCODE_ESCAPE||keyCode==KeyEvent.KEYCODE_P){handleBack();return true;}return super.onKeyDown(keyCode,event);}
